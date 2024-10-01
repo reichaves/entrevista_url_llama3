@@ -23,7 +23,6 @@ from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 import time
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
-from groq.error import RateLimitError
 
 # Configurar o tema para dark
 st.set_page_config(page_title="RAG Q&A Conversacional", layout="wide", initial_sidebar_state="expanded", page_icon="🤖", menu_items=None)
@@ -167,20 +166,30 @@ st.write("Insira uma URL e converse com o conteúdo dela - aqui é usado o model
 groq_api_key = st.text_input("Insira sua chave de API Groq:", type="password")
 huggingface_api_token = st.text_input("Insira seu token de API Hugging Face:", type="password")
 
-# Retry decorator for handling rate limit errors
 @retry(
-    retry=retry_if_exception_type(RateLimitError),
+    retry=retry_if_exception_type(Exception),  # We'll catch all exceptions for now
     wait=wait_exponential(multiplier=1, min=4, max=60),
     stop=stop_after_attempt(5)
 )
 def rate_limited_llm_call(llm, **kwargs):
-    return llm(**kwargs)
+    try:
+        return llm(**kwargs)
+    except Exception as e:
+        if "rate limit" in str(e).lower():
+            # This is likely a rate limit error
+            st.error(f"Rate limit reached. Please try again in a few moments. Error: {str(e)}")
+            raise e
+        else:
+            # Some other error occurred
+            st.error(f"An error occurred while processing your request: {str(e)}")
+            raise e
 
 if groq_api_key and huggingface_api_token:
     # Configurar o token da API do Hugging Face
     os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
     # Inicializar o modelo de linguagem e embeddings
+    # Initialize the LLM with rate limiting
     llm = ChatGroq(groq_api_key=groq_api_key, model_name="llama-3.2-90b-text-preview", temperature=0)
     rate_limited_llm = lambda **kwargs: rate_limited_llm_call(llm, **kwargs)
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -205,7 +214,7 @@ if groq_api_key and huggingface_api_token:
             max_chars = 50000
             if len(text) > max_chars:
                 text = text[:max_chars]
-                st.warning(f"The webpage content was truncated to {max_chars} characters due to length.")
+                st.warning(f"O conteúdo da página da web foi truncado para {max_chars} caracteres devido ao comprimento.")
         
             # Create a Document object
             document = Document(page_content=text, metadata={"source": url})
@@ -216,7 +225,7 @@ if groq_api_key and huggingface_api_token:
             # Create FAISS vector store
             vectorstore = FAISS.from_documents(splits, embeddings)
 
-            st.success(f"Processed {len(splits)} document chunks from the URL.")
+            st.success(f"Processado {len(splits)} pedaços de documentos (chunks) da URL.")
 
             retriever = vectorstore.as_retriever()
 
