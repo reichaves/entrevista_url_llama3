@@ -22,6 +22,8 @@ import requests
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.outputs import ChatResult
 
 # Configurar o tema para dark
 st.set_page_config(page_title="RAG Q&A Conversacional", layout="wide", initial_sidebar_state="expanded", page_icon="🤖", menu_items=None)
@@ -184,6 +186,9 @@ class RateLimitedChatGroq(BaseChatModel):
             else:
                 st.error(f"An error occurred while processing your request: {str(e)}")
             raise e
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
+        return self.llm._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
 
     @property
     def _llm_type(self):
