@@ -189,7 +189,8 @@ if groq_api_key and huggingface_api_token:
     # Inicializar o modelo de linguagem e embeddings
     # Initialize the LLM with rate limiting
     llm = ChatGroq(groq_api_key=groq_api_key, model_name="llama-3.2-90b-text-preview", temperature=0)
-    rate_limited_llm = lambda **kwargs: rate_limited_llm_call(llm, **kwargs)
+    def rate_limited_llm(**kwargs):
+        return rate_limited_llm_call(llm, **kwargs)
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     session_id = st.text_input("Session ID", value="default_session")
