@@ -4,7 +4,6 @@
 # usando Streamlit, LangChain, e modelos de linguagem de grande escala - para entrevistar conteúdo de URLs
 # Geração de respostas usando o modelo llama-3.2-90b-text-preview da Meta
 # Embeddings de texto usando o modelo all-MiniLM-L6-v2 do Hugging Face
-##
 
 import streamlit as st
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
@@ -17,11 +16,11 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
+from langchain_core.language_models.chat_models import BaseChatModel
 import os
 import requests
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
-import time
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 
 # Configurar o tema para dark
@@ -166,31 +165,36 @@ st.write("Insira uma URL e converse com o conteúdo dela - aqui é usado o model
 groq_api_key = st.text_input("Insira sua chave de API Groq:", type="password")
 huggingface_api_token = st.text_input("Insira seu token de API Hugging Face:", type="password")
 
-@retry(
-    retry=retry_if_exception_type(Exception),
-    wait=wait_exponential(multiplier=1, min=4, max=60),
-    stop=stop_after_attempt(5)
-)
-def rate_limited_llm_call(llm, **kwargs):
-    try:
-        return llm(**kwargs)
-    except Exception as e:
-        if "rate limit" in str(e).lower():
-            st.error(f"Rate limit reached. Please try again in a few moments. Error: {str(e)}")
+# Wrapper personalizado para ChatGroq com rate limiting
+class RateLimitedChatGroq(BaseChatModel):
+    def __init__(self, groq_api_key, model_name, temperature=0):
+        self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=model_name, temperature=temperature)
+
+    @retry(
+        retry=retry_if_exception_type(Exception),
+        wait=wait_exponential(multiplier=1, min=4, max=60),
+        stop=stop_after_attempt(5)
+    )
+    def _call(self, messages, stop=None, run_manager=None, **kwargs):
+        try:
+            return self.llm._call(messages, stop=stop, run_manager=run_manager, **kwargs)
+        except Exception as e:
+            if "rate limit" in str(e).lower():
+                st.error(f"Rate limit reached. Please try again in a few moments. Error: {str(e)}")
+            else:
+                st.error(f"An error occurred while processing your request: {str(e)}")
             raise e
-        else:
-            st.error(f"An error occurred while processing your request: {str(e)}")
-            raise e
+
+    @property
+    def _llm_type(self):
+        return "rate_limited_chat_groq"
 
 if groq_api_key and huggingface_api_token:
     # Configurar o token da API do Hugging Face
     os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
     # Inicializar o modelo de linguagem e embeddings
-    # Initialize the LLM with rate limiting
-    llm = ChatGroq(groq_api_key=groq_api_key, model_name="llama-3.2-90b-text-preview", temperature=0)
-    def rate_limited_llm(**kwargs):
-        return rate_limited_llm_call(llm, **kwargs)
+    rate_limited_llm = RateLimitedChatGroq(groq_api_key=groq_api_key, model_name="llama-3.2-90b-text-preview", temperature=0)
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     session_id = st.text_input("Session ID", value="default_session")
@@ -218,7 +222,7 @@ if groq_api_key and huggingface_api_token:
             # Create a Document object
             document = Document(page_content=text, metadata={"source": url})
 
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)  # Reduced chunk size
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
             splits = text_splitter.split_documents([document])
 
             # Create FAISS vector store
@@ -241,7 +245,7 @@ if groq_api_key and huggingface_api_token:
                 ("human", "{input}"),
             ])
 
-            history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
+            history_aware_retriever = create_history_aware_retriever(rate_limited_llm, retriever, contextualize_q_prompt)
 
             system_prompt = (
                 "Você é um assistente especializado em analisar conteúdo de páginas web. "
@@ -272,7 +276,6 @@ if groq_api_key and huggingface_api_token:
                 ("human", "{input}"),
             ])
 
-            # Modify the conversational_rag_chain to use the rate_limited_llm
             question_answer_chain = create_stuff_documents_chain(rate_limited_llm, qa_prompt)
             rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
