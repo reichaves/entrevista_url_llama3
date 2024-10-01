@@ -140,10 +140,11 @@ st.sidebar.markdown("<h2 class='orange-title'>Orientações</h2>", unsafe_allow_
 st.sidebar.markdown("""
 * Se encontrar erros de processamento, reinicie com F5.
 * Para recomeçar uma nova sessão pressione F5.
+* Utilize URLs de sites que não tenham senha ou captcha.
 
 **Obtenção de chaves de API:**
 * Você pode fazer uma conta no Groq Cloud e obter uma chave de API [aqui](https://console.groq.com/login)
-* Você pode fazer uma conta no Hugging Face e obter o token de API Hugging Face [aqui](https://huggingface.co/docs/hub/security-tokens)
+* Você pode fazer uma conta no Hugging Face e obter o token de API de modo write Hugging Face [aqui](https://huggingface.co/docs/hub/security-tokens)
 
 **Atenção:** O conteúdo das URLs que você compartilhar com o modelo de IA generativa pode ser usado pelo LLM para treinar o sistema. Portanto, evite compartilhar URLs que contenham:
 1. Dados bancários e financeiros
@@ -165,8 +166,8 @@ st.markdown("<h1 class='yellow-title'>Chatbot com modelos opensource - entrevist
 st.write("Insira uma URL e converse com o conteúdo dela - aqui é usado o modelo de LLM llama-3.2-90b-text-preview e a plataforma de embeddings é all-MiniLM-L6-v2")
 
 # Solicitar as chaves de API
-groq_api_key = st.text_input("Insira sua chave de API Groq:", type="password")
-huggingface_api_token = st.text_input("Insira seu token de API Hugging Face:", type="password")
+groq_api_key = st.text_input("Insira sua chave de API Groq (depois pressione Enter):", type="password")
+huggingface_api_token = st.text_input("Insira seu token de API HuggingFace (depois pressione Enter):", type="password")
 
 # Wrapper personalizado para ChatGroq com rate limiting
 class RateLimitedChatGroq(BaseChatModel):
