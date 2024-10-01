@@ -22,8 +22,9 @@ import requests
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
-from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.outputs import ChatResult
+from langchain_groq import ChatGroq
+from pydantic import Field
 
 # Configurar o tema para dark
 st.set_page_config(page_title="RAG Q&A Conversacional", layout="wide", initial_sidebar_state="expanded", page_icon="🤖", menu_items=None)
@@ -169,7 +170,10 @@ huggingface_api_token = st.text_input("Insira seu token de API Hugging Face:", t
 
 # Wrapper personalizado para ChatGroq com rate limiting
 class RateLimitedChatGroq(BaseChatModel):
-    def __init__(self, groq_api_key, model_name, temperature=0):
+    llm: ChatGroq = Field(default_factory=lambda: ChatGroq())
+    
+    def __init__(self, groq_api_key: str, model_name: str, temperature: float = 0):
+        super().__init__()
         self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=model_name, temperature=temperature)
 
     @retry(
