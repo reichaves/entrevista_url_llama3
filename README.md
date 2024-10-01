@@ -3,7 +3,7 @@
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://entrevista-sites-llama3.streamlit.app/)
 [![Open in Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/reichaves/chatbot-websites-llama-3.2-90b-text-preview-Brazil)
 
-Este projeto implementa um sistema de Retrieval-Augmented Generation (RAG) conversacional para entrevistar o conteúdo de URLs, utilizando Streamlit, LangChain e modelos de linguagem de grande escala.
+Este projeto implementa um sistema de Retrieval-Augmented Generation (RAG) conversacional para entrevistar o conteúdo de URLs, utilizando Streamlit, LangChain e modelos de linguagem de grande escala. Agradeço às aulas de [Krish C Naik](https://www.youtube.com/user/krishnaik06)
 
 ## Funcionalidades
 
