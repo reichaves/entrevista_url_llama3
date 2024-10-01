@@ -167,7 +167,7 @@ groq_api_key = st.text_input("Insira sua chave de API Groq:", type="password")
 huggingface_api_token = st.text_input("Insira seu token de API Hugging Face:", type="password")
 
 @retry(
-    retry=retry_if_exception_type(Exception),  # We'll catch all exceptions for now
+    retry=retry_if_exception_type(Exception),
     wait=wait_exponential(multiplier=1, min=4, max=60),
     stop=stop_after_attempt(5)
 )
@@ -176,11 +176,9 @@ def rate_limited_llm_call(llm, **kwargs):
         return llm(**kwargs)
     except Exception as e:
         if "rate limit" in str(e).lower():
-            # This is likely a rate limit error
             st.error(f"Rate limit reached. Please try again in a few moments. Error: {str(e)}")
             raise e
         else:
-            # Some other error occurred
             st.error(f"An error occurred while processing your request: {str(e)}")
             raise e
 
