@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 # Reinaldo Chaves (reichaves@gmail.com)
-# Este projeto implementa um sistema de Recuperação de Informações Aumentada por Geração (RAG) conversacional 
+# Este projeto implementa um sistema de Retrieval-Augmented Generation (RAG) conversacional 
 # usando Streamlit, LangChain, e modelos de linguagem de grande escala - para entrevistar conteúdo de URLs
 # Geração de respostas usando o modelo llama-3.2-90b-text-preview da Meta
 # Embeddings de texto usando o modelo all-MiniLM-L6-v2 do Hugging Face
@@ -304,9 +304,7 @@ if groq_api_key and huggingface_api_token:
                         st.write(f"**{message.type}:** {message.content}")
         except requests.RequestException as e:
             st.error(f"Erro ao acessar a URL: {str(e)}")
-        except RateLimitError as e:
-            st.error(f"Limite de taxa excedido para o modelo LLM. Tente novamente em alguns instantes. Erro: {str(e)}")
         except Exception as e:
-            st.error(f"Ocorreu um erro inesperado: {str(e)}")
-else:
-    st.warning("Por favor, insira tanto a chave da API do Groq quanto o token da API do Hugging Face.")
+            if "rate limit" in str(e).lower():
+                st.error(f"Limite de taxa excedido para o modelo LLM. Tente novamente em alguns instantes. Erro: {str(e)}")
+            else:
