@@ -202,6 +202,9 @@ if groq_api_key and huggingface_api_token:
     # Configurar o token da API do Hugging Face
     os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
+    # Configurar a chave de API do Groq no ambiente
+    os.environ["GROQ_API_KEY"] = groq_api_key
+
     # Inicializar o modelo de linguagem e embeddings
     rate_limited_llm = RateLimitedChatGroq(groq_api_key=groq_api_key, model_name="llama-3.2-90b-text-preview", temperature=0)
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
