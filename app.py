@@ -21,6 +21,9 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
+import time
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from groq.error import RateLimitError
 
 # Configurar o tema para dark
 st.set_page_config(page_title="RAG Q&A Conversacional", layout="wide", initial_sidebar_state="expanded", page_icon="🤖", menu_items=None)
@@ -164,12 +167,22 @@ st.write("Insira uma URL e converse com o conteúdo dela - aqui é usado o model
 groq_api_key = st.text_input("Insira sua chave de API Groq:", type="password")
 huggingface_api_token = st.text_input("Insira seu token de API Hugging Face:", type="password")
 
+# Retry decorator for handling rate limit errors
+@retry(
+    retry=retry_if_exception_type(RateLimitError),
+    wait=wait_exponential(multiplier=1, min=4, max=60),
+    stop=stop_after_attempt(5)
+)
+def rate_limited_llm_call(llm, **kwargs):
+    return llm(**kwargs)
+
 if groq_api_key and huggingface_api_token:
     # Configurar o token da API do Hugging Face
     os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
     # Inicializar o modelo de linguagem e embeddings
     llm = ChatGroq(groq_api_key=groq_api_key, model_name="llama-3.2-90b-text-preview", temperature=0)
+    rate_limited_llm = lambda **kwargs: rate_limited_llm_call(llm, **kwargs)
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     session_id = st.text_input("Session ID", value="default_session")
@@ -184,14 +197,20 @@ if groq_api_key and huggingface_api_token:
             response = requests.get(url)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
-            
+        
             # Extract text from the webpage
             text = soup.get_text(separator='\n', strip=True)
-            
+        
+            # Limit the text to a certain number of characters (e.g., 50,000)
+            max_chars = 50000
+            if len(text) > max_chars:
+                text = text[:max_chars]
+                st.warning(f"The webpage content was truncated to {max_chars} characters due to length.")
+        
             # Create a Document object
             document = Document(page_content=text, metadata={"source": url})
 
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)  # Reduced chunk size
             splits = text_splitter.split_documents([document])
 
             # Create FAISS vector store
@@ -245,7 +264,8 @@ if groq_api_key and huggingface_api_token:
                 ("human", "{input}"),
             ])
 
-            question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+            # Modify the conversational_rag_chain to use the rate_limited_llm
+            question_answer_chain = create_stuff_documents_chain(rate_limited_llm, qa_prompt)
             rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
             def get_session_history(session: str) -> BaseChatMessageHistory:
@@ -275,5 +295,9 @@ if groq_api_key and huggingface_api_token:
                         st.write(f"**{message.type}:** {message.content}")
         except requests.RequestException as e:
             st.error(f"Erro ao acessar a URL: {str(e)}")
+        except RateLimitError as e:
+            st.error(f"Limite de taxa excedido para o modelo LLM. Tente novamente em alguns instantes. Erro: {str(e)}")
+        except Exception as e:
+            st.error(f"Ocorreu um erro inesperado: {str(e)}")
 else:
     st.warning("Por favor, insira tanto a chave da API do Groq quanto o token da API do Hugging Face.")
