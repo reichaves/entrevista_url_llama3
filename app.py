@@ -143,7 +143,7 @@ st.sidebar.markdown("<h2 class='orange-title'>Orientações</h2>", unsafe_allow_
 st.sidebar.markdown("""
 * Se encontrar erros de processamento, reinicie com F5.
 * Para recomeçar uma nova sessão pressione F5.
-* Utilize URLs de sites que não tenham senha ou captcha.
+* Utilize URLs de sites que não tenham senha ou captcha. Não captura textos dentro de imagens e gráficos.
 
 **Obtenção de chaves de API:**
 * Você pode fazer uma conta no Groq Cloud e obter uma chave de API [aqui](https://console.groq.com/login)
