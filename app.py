@@ -308,3 +308,6 @@ if groq_api_key and huggingface_api_token:
             if "rate limit" in str(e).lower():
                 st.error(f"Limite de taxa excedido para o modelo LLM. Tente novamente em alguns instantes. Erro: {str(e)}")
             else:
+                st.error(f"Ocorreu um erro inesperado: {str(e)}")
+else:
+    st.warning("Por favor, insira tanto a chave da API do Groq quanto o token da API do Hugging Face.")
