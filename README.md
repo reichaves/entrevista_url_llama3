@@ -67,4 +67,4 @@ Desenvolvido por Reinaldo Chaves (reichaves@gmail.com)
 
 ## Licença
 
-Este projeto está sob a licença [inserir tipo de licença aqui].
+Este projeto está sob a licença MIT.
