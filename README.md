@@ -1,3 +1,15 @@
+---
+title: Chatbot Websites Llama 3.2 90b Text Preview Brazil
+emoji: ⚡
+colorFrom: green
+colorTo: green
+sdk: streamlit
+sdk_version: 1.39.0
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # Chatbot de Websites com Llama 3 🤖
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://entrevista-sites-llama3.streamlit.app/)
